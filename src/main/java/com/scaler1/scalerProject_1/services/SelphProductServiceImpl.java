@@ -1,8 +1,6 @@
 package com.scaler1.scalerProject_1.services;
 
-import com.scaler1.scalerProject_1.dtos.FakeStoreProductDto;
 import com.scaler1.scalerProject_1.dtos.GenericProductDto;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,12 +10,12 @@ public class SelphProductServiceImpl implements  ProductService{
 
 
     @Override
-    public ResponseEntity<GenericProductDto> getProductById(Long id) {
+    public GenericProductDto getProductById(Long id) {
         return null;
     }
 
     @Override
-    public List<FakeStoreProductDto> getALlProducts() {
+    public List<GenericProductDto> getALlProducts() {
         return null;
     }
 

@@ -1,162 +1,99 @@
 package com.scaler1.scalerProject_1.services;
 
-import com.scaler1.scalerProject_1.dtos.FakeStoreProductDto;
+import com.scaler1.scalerProject_1.thirdpartyclients.productsservice.fakestore.FakeStoreProductDto;
 import com.scaler1.scalerProject_1.dtos.GenericProductDto;
-import com.scaler1.scalerProject_1.exceptions.NotFoundException;
+import com.scaler1.scalerProject_1.thirdpartyclients.productsservice.fakestore.FakeStoreProductServiceClient;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 
-import java.io.NotActiveException;
-import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
+@Primary
 @Service("fakeStoreProductService")
 public class FakeStoreProductServices implements ProductService {
 
-    private final RestClient restClient;
+    private final FakeStoreProductServiceClient fakeStoreProductServiceClient;
 
-    public FakeStoreProductServices() {
-        this.restClient = RestClient.builder()
-                .baseUrl("https://fakestoreapi.com")
-                .build();
+    public FakeStoreProductServices(FakeStoreProductServiceClient fakeStoreProductServiceClient) {
+        this.fakeStoreProductServiceClient = fakeStoreProductServiceClient;
     }
 
-    // ================================================
+    // CONVERTER
+    private GenericProductDto convertFakeStoreProductIntoGenericProduct(FakeStoreProductDto fake) {
+        GenericProductDto product = new GenericProductDto();
+        product.setImage(fake.getImage());
+        product.setDescription(fake.getDescription());
+        product.setTitle(fake.getTitle());
+        product.setPrice(fake.getPrice());
+        product.setCategory(fake.getCategory());
+        return product;
+    }
+
+    // =======================
     // GET PRODUCT BY ID
-    // ================================================
-//    @Override
-//    public GenericProductDto getProductById(Long id) {
-//        try {
-//            return restClient.get()
-//                    .uri("/products/" + id)
-//                    .retrieve()
-//                    .body(GenericProductDto.class);
-//        }
-//        catch (RestClientException e) {
-//            throw new RuntimeException("Failed to fetch product with ID: " + id, e);
-//        }
-//    }
-    // =====================================
-//    public GenericProductDto getProductById(Long id) throws NotFoundException {
-//        GenericProductDto response = restClient.get()
-//                .uri("/products/" + id)
-//                .retrieve()
-//                .body(GenericProductDto.class);
-//        if(response == null){
-//            throw new NotFoundException("Product with id:"+id+"not found");
-//        }
-//        else{
-//            return response;
-//        }
-//
-//    }
-
-//    @Override
-//    public ResponseEntity<GenericProductDto> getProductById(Long id) {
-//        try {
-//            GenericProductDto response = restClient.get()
-//                    .uri("/products/" + id)
-//                    .retrieve()
-//                    .body(GenericProductDto.class);
-//
-//            if (response == null) {
-//                throw new NotFoundException("Product with ID " + id + " not found");
-//            }
-//
-//            return ResponseEntity.ok(response);  // CORRECT
-//
-//        } catch (RestClientException e) {
-//            throw new NotFoundException("Product with ID " + id + " not found");
-//        }
-//    }
-
-    // with global exception handler
-    public ResponseEntity<GenericProductDto> getProductById(Long id) {
-        GenericProductDto product = restClient.get()
-                .uri("/products/" + id)
-                .retrieve()
-                .body(GenericProductDto.class);
-
-        if (product == null) {
-            throw new NotFoundException("Product not found with id: " + id);
-        }
-
-        return ResponseEntity.ok(product);
-    }
-
-
-
-    // ================================================
-    // GET ALL PRODUCTS
-    // ================================================
+    // =======================
     @Override
-    public List<FakeStoreProductDto> getALlProducts() {
-        try {
-            FakeStoreProductDto[] products = restClient.get()
-                    .uri("/products")
-                    .retrieve()
-                    .body(FakeStoreProductDto[].class);
+    public GenericProductDto getProductById(Long id) {
 
-            if (products == null) {
-                throw new RuntimeException("Failed to fetch all products: Empty response");
-            }
+        ResponseEntity<FakeStoreProductDto> response =
+                fakeStoreProductServiceClient.getProductById(id);
 
-            return Arrays.asList(products);
-        }
-        catch (RestClientException e) {
-            throw new RuntimeException("Failed to fetch all products", e);
-        }
+        FakeStoreProductDto fakeProduct = response.getBody();  // FIXED ✔
+
+        return convertFakeStoreProductIntoGenericProduct(fakeProduct);
     }
 
-    // ================================================
+    // =======================
+    // GET ALL PRODUCTS
+    // =======================
+    @Override
+    public List<GenericProductDto> getALlProducts() {
+
+        ResponseEntity<List<FakeStoreProductDto>> response =
+                fakeStoreProductServiceClient.getALlProducts();
+
+        List<FakeStoreProductDto> fakeProducts = response.getBody(); // FIXED ✔
+
+        return fakeProducts.stream()
+                .map(this::convertFakeStoreProductIntoGenericProduct)
+                .collect(Collectors.toList()).reversed();
+    }
+
+    // =======================
     // DELETE PRODUCT
-    // ================================================
+    // =======================
     @Override
     public GenericProductDto deleteProductById(Long id) {
-        try {
-            return restClient.delete()
-                    .uri("products/" + id)
-                    .retrieve()
-                    .body(GenericProductDto.class);
-        }
-        catch (RestClientException e) {
-            throw new RuntimeException("Failed to delete product with ID: " + id, e);
-        }
+
+        ResponseEntity<FakeStoreProductDto> response =
+                fakeStoreProductServiceClient.deleteProductById(id);
+
+        return convertFakeStoreProductIntoGenericProduct(response.getBody());
     }
 
-    // ================================================
-    // CREATE / ADD PRODUCT
-    // ================================================
+    // =======================
+    // ADD PRODUCT
+    // =======================
     @Override
     public GenericProductDto addProduct(GenericProductDto genericProductDto) {
-        try {
-            return restClient.post()
-                    .uri("products")
-                    .body(genericProductDto)
-                    .retrieve()
-                    .body(GenericProductDto.class);
-        }
-        catch (RestClientException e) {
-            throw new RuntimeException("Failed to add new product", e);
-        }
+
+        ResponseEntity<FakeStoreProductDto> response =
+                fakeStoreProductServiceClient.addProduct(genericProductDto);
+
+        return convertFakeStoreProductIntoGenericProduct(response.getBody());
     }
 
-    // ================================================
+    // =======================
     // UPDATE PRODUCT
-    // ================================================
+    // =======================
     @Override
     public GenericProductDto updateProduct(Long id, GenericProductDto genericProductDto) {
-        try {
-            return restClient.put()
-                    .uri("products/" + id)
-                    .body(genericProductDto)
-                    .retrieve()
-                    .body(GenericProductDto.class);
-        }
-        catch (RestClientException e) {
-            throw new RuntimeException("Failed to update product with ID: " + id, e);
-        }
+
+        ResponseEntity<FakeStoreProductDto> response =
+                fakeStoreProductServiceClient.updateProduct(id, genericProductDto);
+
+        return convertFakeStoreProductIntoGenericProduct(response.getBody());
     }
 }

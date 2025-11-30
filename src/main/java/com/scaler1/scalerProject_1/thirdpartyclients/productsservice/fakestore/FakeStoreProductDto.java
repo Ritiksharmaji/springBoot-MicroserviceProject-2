@@ -1,8 +1,6 @@
-package com.scaler1.scalerProject_1.dtos;
+package com.scaler1.scalerProject_1.thirdpartyclients.productsservice.fakestore;
 
-import com.scaler1.scalerProject_1.models.Category;
 import lombok.Data;
-import lombok.Setter;
 
 @Data
 public class FakeStoreProductDto {
