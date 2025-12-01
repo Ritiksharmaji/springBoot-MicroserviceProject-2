@@ -106,8 +106,8 @@ You only work with **objects**, not SQL.
 ```java
 String sql = "INSERT INTO users(name, email) VALUES (?, ?)";
 PreparedStatement stmt = connection.prepareStatement(sql);
-stmt.setString(1, user.getName());
-stmt.setString(2, user.getEmail());
+stmt.setString(1, userSingleTable.getName());
+stmt.setString(2, userSingleTable.getEmail());
 stmt.executeUpdate();
 ```
 
@@ -281,10 +281,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 Usage:
 
 ```java
-userRepository.save(user);
-userRepository.findById(1L);
-userRepository.findAll();
-userRepository.delete(user);
+userRepositorySingleTable.save(userSingleTable);
+userRepositorySingleTable.findById(1L);
+userRepositorySingleTable.findAll();
+userRepositorySingleTable.delete(userSingleTable);
 ```
 
 No SQL anywhere!
@@ -392,7 +392,7 @@ Your code interacts ONLY with:
 Example:
 
 ```java
-userRepository.save(user);
+userRepositorySingleTable.save(userSingleTable);
 ```
 
 ➡ No SQL written.
@@ -792,7 +792,7 @@ public class UserDao {
         // SQL or ORM call
     }
 
-    public void saveUser(User user) {
+    public void saveUser(User userSingleTable) {
         // SQL or ORM call
     }
 }
@@ -863,9 +863,9 @@ userDao.update();
 ### Repository style:
 
 ```java
-userRepository.findById();
-userRepository.save();
-userRepository.delete();
+userRepositorySingleTable.findById();
+userRepositorySingleTable.save();
+userRepositorySingleTable.delete();
 ```
 
 **Repository is cleaner and more abstract.**
@@ -964,7 +964,7 @@ Below is the **exact difference** in a simple, clear way 👇
 ```java
 public class UserDao {
     public UserEntity getUserById(int id) { }
-    public void saveUser(UserEntity user) { }
+    public void saveUser(UserEntity userSingleTable) { }
 }
 ```
 
@@ -979,7 +979,7 @@ DAO hides raw DB logic and SQL.
 * You work directly with domain objects (entities).
 * Repository is like a **collection** of objects:
 
-  **“Give me all users”, “save this user”, “find by email”**, etc.
+  **“Give me all users”, “save this userSingleTable”, “find by email”**, etc.
 
 ### Example (Spring Boot):
 
@@ -1022,7 +1022,7 @@ You think about tables:
 
 ```java
 userDao.getUserById(10); 
-userDao.saveUser(user);
+userDao.saveUser(userSingleTable);
 ```
 
 ## **Repository Style**
@@ -1030,8 +1030,8 @@ userDao.saveUser(user);
 You think about domain model:
 
 ```java
-userRepository.findById(10);
-userRepository.save(user);
+userRepositorySingleTable.findById(10);
+userRepositorySingleTable.save(userSingleTable);
 ```
 
 ---
@@ -1062,7 +1062,7 @@ If you want, I can generate a **diagram PNG** showing DAO vs Repository visually
 2) ![img_6.png](img_6.png)
 3) 
 ## ---- most important flow -------- 
-1) user=>controller=>service=>Repository=>Spring Data JPA => JPA=>Hibernate=> JDBC=> mysql driver => database
+1) userSingleTable=>controller=>service=>Repository=>Spring Data JPA => JPA=>Hibernate=> JDBC=> mysql driver => database
 2) adding dependecy 
 
 ```declarative
@@ -1637,11 +1637,15 @@ public class CardPayment extends Payment {
 * Clean schema (normalized)
 * No null columns
 * Good for large enterprise apps
+* it will fast when you required the data of parent class
+
 
 ### ❌ Disadvantages
 
 * Slower due to joins
 * More complex schema
+* it will show when you required to fetch the data of child class due to Join
+* 
 
 ### ✔ Example
 
@@ -1678,11 +1682,13 @@ public class Bike extends Vehicle {
 
 * No joins.
 * Fast reads (child tables independent).
+* query on child class object will fast 
 
 ### ❌ Disadvantages
 
 * Duplicate columns across tables.
 * Queries involving parent types become slow (UNION required).
+* query on parent class will show
 
 ### ✔ Example
 
@@ -1762,3 +1768,1184 @@ public class Order extends BaseModel {
 # 📘 If you want → I can create a **PNG diagram** showing all inheritance strategies side-by-side.
 
 Just say: **"Give PNG diagram of inheritance strategies"**.
+![img_9.png](img_9.png)
+
+## ------------ Lecture | BE: DB: Queries, Inheritance, Relations --------
+# --------- representing cardinalities and representing inheritance ---
+1) Cardinality and inheritance are two fundamental concepts used in different aspects of system design and programming:
+2) ![img_11.png](img_11.png)
+   Here are the **two terms explained clearly** — **Representing Cardinalities** and **Representing Inheritance** — with **full notes**, diagrams (text-based), and examples from **Spring Boot + JPA/Hibernate + Database modeling**.
+
+---
+
+# ✅ **1. Representing Cardinalities**
+
+**Cardinality** means **how many instances of one entity relate to how many instances of another entity**.
+
+It is used in:
+✔ Database design
+✔ ER diagrams
+✔ JPA / Hibernate (Spring Boot) relationship mappings
+✔ UML diagrams
+
+---
+
+## **📌 Types of Cardinalities**
+
+### **1. One-to-One (1:1)**
+
+One record in A is linked to exactly one record in B.
+
+**Example:**
+A person has exactly one passport.
+
+**JPA Example:**
+
+```java
+@OneToOne
+@JoinColumn(name = "passport_id")
+private Passport passport;
+```
+
+**ER Diagram (ASCII):**
+
+```
+Person 1 ---- 1 Passport
+```
+
+---
+
+### **2. One-to-Many (1:N)**
+
+One record in A relates to multiple records in B.
+
+**Example:**
+One department has many employees.
+
+**JPA Example:**
+
+```java
+@OneToMany(mappedBy = "department")
+private List<Employee> employees;
+```
+
+**ER Diagram:**
+
+```
+Department 1 ----< Employees (N)
+```
+
+---
+
+### **3. Many-to-One (N:1)**
+
+Multiple rows in A refer to a single row in B.
+
+Often the reverse of 1:N.
+
+**JPA Example:**
+
+```java
+@ManyToOne
+@JoinColumn(name = "department_id")
+private Department department;
+```
+
+---
+
+### **4. Many-to-Many (M:N)**
+
+Records in A relate to multiple records in B, and vice-versa.
+
+**Example:**
+A student can take many courses, and a course has many students.
+
+**JPA Example:**
+
+```java
+@ManyToMany
+@JoinTable(
+    name = "student_course",
+    joinColumns = @JoinColumn(name = "student_id"),
+    inverseJoinColumns = @JoinColumn(name = "course_id")
+)
+private List<Course> courses;
+```
+
+**Diagram:**
+
+```
+Students >----< Courses
+```
+
+---
+
+# 📌 Why Cardinalities are Important?
+
+| Reason                         | Explanation                                               |
+| ------------------------------ | --------------------------------------------------------- |
+| Database normalization         | Helps to structure tables correctly                       |
+| JPA Relationship configuration | Determines annotations (`@OneToMany`, `@ManyToOne`, etc.) |
+| Foreign key creation           | FK comes from cardinality mapping                         |
+| Performance                    | Affects lazy/eager fetching                               |
+| Real-world modeling            | Helps match software to real data flow                    |
+
+---
+
+# ✅ **2. Representing Inheritance**
+
+**Inheritance** = modeling a parent–child structure among entities.
+
+Used in:
+✔ OOP (Java classes)
+✔ JPA/Hibernate entity mapping
+✔ UML diagrams
+✔ Database design
+
+---
+
+## **📌 Types of JPA Inheritance Strategies**
+
+### **1. SINGLE_TABLE**
+
+All child classes stored in **one table**. beacuse it is going to create table for parent class object and in that combine all child
+class object
+
+**Pros:** Fast, simple,
+**Cons:** Many null columns
+
+**Example:**
+
+```java
+@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "type")
+public class User {}
+
+@Entity
+public class Admin extends User {}
+```
+
+**Diagram:**
+
+```
+User TABLE
+-----------------------------
+id | name | adminField | studentField | type
+```
+
+---
+1) ![img_15.png](img_15.png)
+2) ![img_16.png](img_16.png)
+
+
+Your error is **100% correct and expected**:
+
+```
+Entity ... Mentor is a subclass in a SINGLE_TABLE hierarchy 
+and may not be annotated @Table
+```
+
+---
+
+# ✅ WHY ERROR IS COMING?
+
+When you use:
+
+```java
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+```
+
+👉 **Only the PARENT class** is allowed to have:
+
+* `@Table(name="...")`
+
+👉 **Child classes MUST NOT have `@Table`**
+because all children share **one single table** → the parent’s table.
+
+---
+
+# ❌ YOU DID WRONG:
+
+You added:
+
+```java
+@Table(name = "st_mentor")
+@Table(name = "st_student")
+@Table(name = "st_ta")
+```
+
+This is NOT allowed in **SINGLE_TABLE** strategy.
+
+---
+
+# ✅ FIX (VERY SIMPLE)
+
+### ❌ Remove `@Table` from child entities
+
+### ✔ Keep only on parent
+
+---
+
+## ✅ Corrected Classes
+
+### ✔ Base parent class => ALLOWED to have table mapping
+
+```java
+@Data
+@Entity
+@Table(name = "st_user")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "dtype")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    private String name;
+    private String email;
+}
+```
+
+---
+
+### ✔ Child class Mentor (NO @Table)
+
+```java
+@Data
+@Entity
+public class Mentor extends User {
+    private double avg_rating;
+}
+```
+
+---
+
+### ✔ Child class Student (NO @Table)
+
+```java
+@Data
+@Entity
+public class Student extends User {
+    private double psp;
+    private double attendance;
+}
+```
+
+---
+
+### ✔ Child class TA (NO @Table)
+
+```java
+@Data
+@Entity
+public class TA extends User {
+    private double ave_rating;
+}
+```
+
+---
+
+# 🔥 AFTER FIX
+
+Hibernate will automatically generate a **single table**:
+
+## **st_user table**
+
+with columns:
+
+| id   | name   | email  | avg_rating | psp    | attendance | ave_rating | dtype  |
+| ---- | ------ | ------ | ---------- | ------ | ---------- | ---------- | ------ |
+| UUID | string | string | DOUBLE     | DOUBLE | DOUBLE     | DOUBLE     | string |
+
+---
+
+# 🎉 Your INSERT will work:
+
+```
+insert into st_user (email, name, avg_rating, dtype, id)
+values (...)
+```
+
+---
+
+# ⚠️ IMPORTANT
+
+You **must** add the following in application.properties if table not created:
+
+```properties
+spring.jpa.hibernate.ddl-auto=update
+```
+
+---
+
+If you want, I can also generate:
+
+✔ SQL schema for SINGLE_TABLE
+✔ PNG diagram showing Single Table inheritance
+✔ Samples for JOINED or TABLE_PER_CLASS inheritance
+
+Just say **"generate diagram"**.
+
+1) ![img_17.png](img_17.png)
+2) ![img_18.png](img_18.png)
+
+### **2. JOINED**
+
+Parent table + separate child tables.
+
+**Pros:** 
+1) Normalized.
+2) query on parent class object will fast beacuse at that time not required the Join
+-----
+**Cons:** 
+1) More joins (slower).
+2) query on child class object will show due to join
+
+
+**Example:**
+
+```java
+@Entity
+@Inheritance(strategy = InheritanceType.JOINED)
+public class Payment {}
+
+@Entity
+public class CardPayment extends Payment {}
+```
+
+**Diagram:**
+
+```
+Payment Table ---- join ---- CardPayment Table
+```
+
+---
+
+### **3. TABLE_PER_CLASS**
+
+Each child table contains full data (no parent table join).
+
+**Pros:** Fast reading
+**Cons:** Data duplication
+
+**Example:**
+
+```java
+@Entity
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+public class Vehicle {}
+
+@Entity
+public class Car extends Vehicle {}
+```
+
+---
+example
+Below is the **correct and complete setup for Table-Per-Class (TPC) inheritance** in Spring Boot + JPA **based on your existing code**, with **all changes required**, including:
+
+✅ Correct annotations
+✅ Correct ID types
+✅ Correct table creation
+✅ Fix for your exception:
+**Table 'scalerspringboot1.st_user' doesn't exist** → caused because you still used `@Table(name = "st_user")` + `SINGLE_TABLE`
+But **in Table-Per-Class, every subclass has its own Table.**
+
+---
+
+# ✅ **Final Working Code (TABLE PER CLASS)**
+
+### **1. Base Class → User.java**
+
+✔ No `@Table`
+✔ No `@DiscriminatorColumn`
+✔ Use `InheritanceType.TABLE_PER_CLASS`
+✔ ID must be **GenerationType.AUTO** (TPC requires auto, not UUID)
+
+```java
+package com.scaler1.scalerProject_1.inheritanceDemo.TablePerClass;
+
+import jakarta.persistence.*;
+import lombok.Data;
+
+@Data
+@Entity
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+public abstract class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long id;
+
+    private String name;
+    private String email;
+}
+```
+
+---
+
+# **2. Mentor.java (child)**
+
+✔ REMOVE `@DiscriminatorValue` (Not used in TPC)
+✔ Each subclass becomes its own table: `mentorSingleTable`
+
+```java
+package com.scaler1.scalerProject_1.inheritanceDemo.TablePerClass;
+
+import jakarta.persistence.Entity;
+import lombok.Data;
+
+@Data
+@Entity
+public class Mentor extends UserTPC {
+    private double avg_rating;
+}
+```
+
+---
+
+# **3. Student.java (child)**
+
+```java
+package com.scaler1.scalerProject_1.inheritanceDemo.TablePerClass;
+
+import jakarta.persistence.Entity;
+import lombok.Data;
+
+@Data
+@Entity
+public class Student extends UserTPC {
+    private double psp;
+    private double attendance;
+}
+```
+
+---
+
+# **4. TA.java (child)**
+
+```java
+package com.scaler1.scalerProject_1.inheritanceDemo.TablePerClass;
+
+import jakarta.persistence.Entity;
+import lombok.Data;
+
+@Data
+@Entity
+public class TA extends UserTPC {
+    private double ave_rating;
+}
+```
+
+---
+
+# **5. Repositories**
+
+### **UserRepository.java**
+
+⚠ For Table-Per-Class, use `Long` ID.
+
+```java
+package com.scaler1.scalerProject_1.inheritanceDemo.TablePerClass;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRepository extends JpaRepository<UserTPC, Long> {
+}
+```
+
+### **MentorRepository.java**
+
+```java
+package com.scaler1.scalerProject_1.inheritanceDemo.TablePerClass;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface MentorRepository extends JpaRepository<MentorTPC, Long> {
+}
+```
+
+### **TARepository.java**
+
+```java
+package com.scaler1.scalerProject_1.inheritanceDemo.TablePerClass;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface TARepository extends JpaRepository<TATPC, Long> {
+}
+```
+
+---
+
+# **6. Main Class**
+
+⚠ Fix imports (they must point to TablePerClass)
+⚠ Your old code had wrong imports (`SingleTable`)
+
+```java
+package com.scaler1.scalerProject_1;
+
+import com.scaler1.scalerProject_1.inheritanceDemo.TablePerClass.*;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ScalerProject1Application implements CommandLineRunner {
+
+    private final MentorRepositoryTPC mentorRepositorySingleTable;
+    private final UserRepositoryTPC userRepositorySingleTable;
+    private final TARepositoryTPC taRepositorySingleTable;
+
+    public ScalerProject1Application(MentorRepositoryTPC mentorRepositorySingleTable,
+                                     UserRepositoryTPC userRepositorySingleTable,
+                                     TARepositoryTPC taRepositorySingleTable) {
+        this.mentorRepositorySingleTable = mentorRepositorySingleTable;
+        this.userRepositorySingleTable = userRepositorySingleTable;
+        this.taRepositorySingleTable = taRepositorySingleTable;
+    }
+
+    public static void main(String[] args) {
+        SpringApplication.run(ScalerProject1Application.class, args);
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+
+        MentorTPC mentorSingleTable = new MentorTPC();
+        mentorSingleTable.setName("Ritik");
+        mentorSingleTable.setEmail("RIitk@gmail.com");
+        mentorSingleTable.setAvg_rating(4.54);
+        mentorRepositorySingleTable.save(mentorSingleTable);
+
+        UserTPC userSingleTable = new UserTPC() {
+        }; // abstract class → anonymous object
+        userSingleTable.setName("Ankit Sharma");
+        userSingleTable.setEmail("Ankitsharma@gmail.com");
+        userRepositorySingleTable.save(userSingleTable);
+
+        TATPC taSingleTable = new TATPC();
+        taSingleTable.setName("Priyanshu Sharma");
+        taSingleTable.setEmail("pri@gmail.com");
+        taSingleTable.setAve_rating(9.8);
+        taRepositorySingleTable.save(taSingleTable);
+    }
+}
+```
+
+---
+
+# ✅ **What Tables Will Be Created?**
+
+In **Table Per Class**, JPA creates:
+
+| Class   | Table Name |
+| ------- | ---------- |
+| Mentor  | mentorSingleTable     |
+| Student | student    |
+| TA      | taSingleTable         |
+| User    | userSingleTable       |
+
+Each table has **its own columns** even if duplicated.
+
+---
+
+# ❗Why Your Error Occurred?
+
+Your original code had:
+
+* `@Table(name = "st_user")`
+* `@Inheritance(SINGLE_TABLE)`
+* `@DiscriminatorValue` in subclasses
+
+So Hibernate tried to insert:
+
+```
+INSERT INTO st_user (...)
+```
+
+But since you wanted **Table-Per-Class**, that table **does not exist**, causing:
+
+```
+Table 'scalerspringboot1.st_user' doesn't exist
+```
+
+---
+
+# 🎉 DONE — Now your project is fully converted to **Table-Per-Class Inheritance**, and the error is fixed.
+
+If you want, I can also generate:
+
+✅ Diagrams for Table-Per-Class
+✅ Notes explaining Table-Per-Class vs Single-Table vs Joined
+✅ SQL table structure after Hibernate creation
+
+Just tell me **"generate diagrams"** or **"give notes for all inheritance strategies"**.
+
+-----
+## - 4. Mappend super Class
+1) ![img_14.png](img_14.png)
+2) 
+# 📌 Why Inheritance Is Used?
+
+| Benefit                   | Explanation                          |
+| ------------------------- | ------------------------------------ |
+| Avoid duplicate fields    | Common fields kept in parent         |
+| Clean OOP modeling        | Follows real-world concepts          |
+| Reusing code              | Methods/fields inherited             |
+| Better database structure | Based on chosen inheritance strategy |
+
+---
+
+# 🔥 **Difference Between Cardinality & Inheritance**
+
+| Feature         | Cardinality                               | Inheritance                                        |
+| --------------- | ----------------------------------------- | -------------------------------------------------- |
+| Meaning         | Relationship between 2 different entities | Relationship between parent and child entity types |
+| Use Case        | Mapping associations (1:N, M:N)           | Mapping hierarchy (User → Admin, Student)          |
+| Annotation      | `@OneToMany`, `@ManyToOne`, etc.          | `@Inheritance`, `@MappedSuperclass`                |
+| ER Diagram      | Lines connecting tables                   | Parent–child hierarchy trees                       |
+| Database Effect | Creates foreign keys                      | Creates shared or separate tables for hierarchy    |
+
+---
+
+# ⭐ Final Summary
+
+### **Representing Cardinalities**
+
+* Describes **how many objects** are related (1:1, 1:N, N:1, M:N)
+* Used in **database relationships**
+* Implemented with **JPA relationship annotations**
+
+### **Representing Inheritance**
+
+* Describes **parent-child modelling**
+* Used in **object oriented design & JPA**
+* Implemented with **@Inheritance + strategy**
+
+---
+
+If you want, I can also generate:
+
+✅ A PNG diagram of
+**“Cardinalities + Inheritance Together”**
+in one big architecture chart.
+
+Just say **“generate combined diagram”**.
+1) ![img_12.png](img_12.png)
+2) ![img_13.png](img_13.png)
+
+Let’s unravel this whole **inheritance carnival** in your Spring Boot app, Ritik, and walk through **what tables are created**, **why they exist**, and **how your run() method behaves** across all four inheritance strategies.
+Think of this as a small parade of database tables, each with its own personality 🎭.
+
+---
+
+# 🌿 Part 1: How Spring Boot Executes Your Code
+
+Your `ScalerProject1Application` class implements `CommandLineRunner`, so when Spring Boot starts:
+
+1. ApplicationContext loads repositories.
+2. Hibernate creates schema based on annotations.
+3. `run()` executes.
+4. It starts inserting sample data one block at a time.
+
+If any table doesn’t exist, Hibernate panics and throws the error you got earlier.
+
+---
+
+# 🧬 Part 2: What Tables Are Created AND WHY
+
+You have **4 different inheritance strategies**, each living in different packages.
+
+Hibernate creates a complete set of tables for each strategy.
+
+---
+
+# 🍱 **1) SINGLE TABLE STRATEGY**
+
+Annotations used:
+
+```java
+@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "dtype")
+```
+
+### ✔ What tables will be created?
+
+Only **ONE TABLE**:
+
+### **st_user**
+
+With columns like:
+
+| Column     | Meaning                   |
+| ---------- | ------------------------- |
+| id         | PK                        |
+| name       | parent                    |
+| email      | parent                    |
+| avg_rating | child field (Mentor)      |
+| ave_rating | child field (TA)          |
+| psp        | child field (Student)     |
+| attendance | child field (Student)     |
+| dtype      | which child type inserted |
+
+### ✔ Why?
+
+Because **all children share a single table**, and differences are tracked through `dtype`.
+
+### ✔ What entries will be saved?
+
+* MentorSingleTable row → dtype = `"st_mentor"`
+* StudentSingleTable row → dtype = `"st_student"`
+* TASingleTable row → dtype = `"st_ta"`
+
+🌟 **Single table is the fastest and easiest, but the table becomes very wide.**
+
+---
+
+# 🧩 **2) JOINED STRATEGY**
+
+Annotations:
+
+```java
+@Entity
+@Inheritance(strategy = InheritanceType.JOINED)
+```
+
+### ✔ What tables are created?
+
+1. **user_joined** (base table)
+2. **mentor_joined** (child table)
+3. **student_joined** (child table)
+4. **ta_joined** (child table)
+
+### ✔ Why?
+
+Hibernate separates shared fields and child-specific fields.
+
+### Example:
+
+**user_joined**
+
+| id | name | email |
+
+**mentor_joined**
+
+| id | avg_rating |
+
+**student_joined**
+
+| id | psp | attendance |
+
+Child tables share the same PK (`id`).
+Hibernate does an INNER JOIN when fetching child objects.
+
+🌟 **Joined strategy = normalized and clean, but requires JOIN queries.**
+
+---
+
+# 🪞 **3) TABLE PER CLASS STRATEGY**
+
+Annotations:
+
+```java
+@Entity
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+```
+
+### ✔ What tables are created?
+
+1. **mentor_tpc**
+2. **student_tpc**
+3. **ta_tpc**
+
+There is **NO PARENT TABLE**, because shared fields are copied into each child table.
+
+### ✔ Why?
+
+Because each child is treated as a separate table with duplicated parent columns.
+
+### Example: mentor_tpc fields:
+
+| id | name | email | avg_rating |
+
+student_tpc fields:
+
+| id | name | email | psp | attendance |
+
+🌟 **Fast for reading child tables, but duplicates columns across tables.**
+
+---
+
+# 🏛 **4) MAPPED SUPERCLASS STRATEGY**
+
+Annotations:
+
+```java
+@MappedSuperclass
+```
+
+### ✔ What tables are created?
+
+ONLY CHILD TABLES:
+
+1. **mentor_msc**
+2. **student_msc**
+3. **ta_msc**
+
+### ✔ Why?
+
+MappedSuperclass is NOT an entity.
+It means:
+
+* No table for the parent
+* Child tables copy parent fields
+
+Example: mentor_msc
+| id | name | email | avg_rating |
+
+🌟 Most flexible choice; parent only acts as a reusable code template.
+
+---
+
+# 📦 FINAL SUMMARY OF ALL TABLES CREATED
+
+### **1) SINGLE TABLE**
+
+| Table   | Purpose                    |
+| ------- | -------------------------- |
+| st_user | One table for all children |
+
+---
+
+### **2) JOINED**
+
+| Table          | Purpose                    |
+| -------------- | -------------------------- |
+| user_joined    | Parent table               |
+| mentor_joined  | Child (mentor fields only) |
+| student_joined | Child                      |
+| ta_joined      | Child                      |
+
+---
+
+### **3) TABLE PER CLASS**
+
+| Table       | Purpose           |
+| ----------- | ----------------- |
+| mentor_tpc  | Independent child |
+| student_tpc | Independent child |
+| ta_tpc      | Independent child |
+
+---
+
+### **4) MAPPED SUPERCLASS**
+
+| Table       | Purpose                            |
+| ----------- | ---------------------------------- |
+| mentor_msc  | Child with inherited fields copied |
+| student_msc | Child                              |
+| ta_msc      | Child                              |
+
+---
+
+# ⚙️ What Happens When run() Executes
+
+Your code inserts:
+
+* 3 objects in **Single Table**
+* 3 objects in **Joined**
+* 3 objects in **Table Per Class**
+* 3 objects in **MappedSuperClass**
+
+Hibernate saves the right fields into the right tables according to the inheritance strategy.
+
+---
+
+# 🎉 If You Want, I Can Also Create:
+
+✓ Diagrams for each strategy
+✓ Explanation of pros and cons
+✓ Why your earlier error occurred (table missing)
+✓ Complete ERD for all tables
+red: https://www.baeldung.com/hibernate-inheritance
+Just tell me.
+
+# ------------ fetch types in spring boot with full notes ---------
+Here is a **complete, clear, and exam-level explanation** of **Fetch Types in Spring Boot (JPA/Hibernate)** along with diagrams, examples, pros/cons, and best practices.
+
+---
+
+# ✅ **FETCH TYPES IN SPRING BOOT (JPA/HIBERNATE) — FULL NOTES**
+
+In Spring Boot using JPA/Hibernate, **Fetch Type** defines **how related data is loaded from the database** when you load an entity.
+
+JPA provides two fetch types:
+
+### ✔ `FetchType.LAZY`
+
+### ✔ `FetchType.EAGER`
+
+---
+
+# 🎯 **1. WHY FETCH TYPES EXIST?**
+
+Entities in JPA often have relationships:
+
+* `@OneToOne`
+* `@OneToMany`
+* `@ManyToOne`
+* `@ManyToMany`
+
+When you fetch a parent entity, JPA needs to decide:
+
+👉 **Should related entities be loaded immediately? (EAGER)**
+👉 **Should related entities load only when accessed? (LAZY)**
+
+---
+
+# 🎯 **2. FETCHTYPE.EAGER**
+
+### 📌 **Definition**
+
+Loads the child relationships **immediately** when the parent entity is fetched.
+
+### ⚡ Example
+
+```java
+@OneToOne(fetch = FetchType.EAGER)
+private Address address;
+```
+
+### ⭐ Behaviour:
+
+If you run:
+
+```java
+User userSingleTable = userRepositorySingleTable.findById(1L).get();
+```
+
+Hibernate will generate **JOIN queries** and fetch User + Address at the same time.
+
+---
+
+# ⚡ **EAGER FETCH DIAGRAM**
+
+```
+ User Entity -------> Address Entity  
+      |                      |
+      -------- (JOIN) -------
+```
+
+---
+
+# ⭐ PROS of EAGER
+
+* Simple — you always get the full object
+* No LazyInitializationException
+
+# ❌ CONS of EAGER
+
+* Generates heavy JOIN queries
+* Loads large graphs unnecessarily
+* Causes performance issues
+* May trigger **N+1 select problems**
+
+---
+
+# 🎯 **3. FETCHTYPE.LAZY (DEFAULT)**
+
+### 📌 **Definition**
+
+Loads child entities **only when you access them**.
+
+### ⚡ Example
+
+```java
+@OneToMany(mappedBy = "userSingleTable", fetch = FetchType.LAZY)
+private List<Order> orders;
+```
+
+### ⭐ Behaviour:
+
+When you run:
+
+```java
+User userSingleTable = userRepositorySingleTable.findById(1L).get();
+```
+
+👉 **Orders are NOT loaded yet!**
+
+Orders will load only when you access:
+
+```java
+userSingleTable.getOrders().size();
+```
+
+Now Hibernate fires **a separate SQL query**.
+
+---
+
+# ⚡ LAZY FETCH DIAGRAM
+
+```
+User Entity -------> orders (Proxy)
+                    |
+                    |   (loads only when used)
+                    v
+                Order Table
+```
+
+---
+
+# ⭐ PROS of LAZY
+
+* Better performance
+* Loads only required data
+* Avoids heavy JOIN queries
+* Ideal for large collections
+
+# ❌ CONS of LAZY
+
+* May cause `LazyInitializationException`
+  if accessed outside a transaction (ex: in controller)
+
+---
+
+# 🎯 **4. DEFAULT FETCH TYPES**
+
+| Relationship Type | Default FetchType |
+| ----------------- | ----------------- |
+| @OneToOne         | EAGER             |
+| @ManyToOne        | EAGER             |
+| @OneToMany        | LAZY              |
+| @ManyToMany       | LAZY              |
+
+---
+
+# 🎯 **5. LAZYINITIALIZATIONEXCEPTION — Meaning**
+
+Occurs when:
+
+* You fetch entity in service
+* Transaction closes
+* You return entity to controller
+* Controller tries to access lazy field
+
+❌ Hibernate cannot load child data outside transaction → exception occurs.
+
+### ✔ Solutions:
+
+1. Use `@Transactional` in service
+2. Use DTO pattern (recommended)
+3. Use fetch join:
+
+```java
+@Query("SELECT u FROM User u JOIN FETCH u.orders WHERE u.id = :id")
+```
+
+---
+
+# 🎯 **6. REAL WORLD EXAMPLE**
+
+### Entities
+
+#### ⭐ **Product**
+
+```java
+@Entity
+public class Product {
+    @Id
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Category category;
+}
+```
+
+#### ⭐ **Category**
+
+```java
+@Entity
+public class Category {
+    @Id
+    private Long id;
+
+    private String name;
+}
+```
+
+### Query:
+
+```java
+Product p = productRepo.findById(1L).get();
+```
+
+👉 Category will **not load** until:
+
+```java
+p.getCategory().getName();
+```
+
+---
+
+# 🎯 **7. PERFORMANCE IMPACT**
+
+### ⚡ EAGER
+
+Loads extra data even if you don’t use it.
+Bad for large relational graphs.
+
+### ⚡ LAZY
+
+Loads data only when needed.
+Best for web applications.
+
+---
+
+# 🎯 **8. WHEN TO USE WHAT?**
+
+## ✔ Use EAGER When:
+
+* Always required field
+* Small relational graph
+* One-to-one essential data
+
+## ✔ Use LAZY When:
+
+* Large collections
+* Not always needed
+* One-to-many or many-to-many
+
+---
+
+# 🎯 **9. Very Important — With Collections Use Only LAZY**
+
+Using `EAGER` on:
+
+* List
+* Set
+* Map
+
+is dangerous because Hibernate loads everything at once → performance disaster.
+
+---
+
+# 🎯 **10. Summary Table**
+
+| Feature                 | LAZY      | EAGER     |
+| ----------------------- | --------- | --------- |
+| Performance             | Better    | Worse     |
+| SQL Queries             | On demand | Immediate |
+| Memory usage            | Low       | High      |
+| N+1 problem             | Possible  | Common    |
+| Default for Collections | Yes       | No        |
+
+---
+
+# 🎉 **If you want, I can also generate a PNG DIAGRAM showing LAZY vs EAGER loading visually.**
+1) ![img_10.png](img_10.png)
+2) 

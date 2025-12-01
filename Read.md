@@ -1402,7 +1402,7 @@ Here is a **simple explanation** of **Serialization** and **Deserialization** in
 Example:
 
 ```java
-User user = new User("Ritik", 22);
+User userSingleTable = new User("Ritik", 22);
 ```
 
 After **serialization**, it becomes JSON:
