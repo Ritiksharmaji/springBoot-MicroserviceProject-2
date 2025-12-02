@@ -2674,6 +2674,333 @@ Hibernate saves the right fields into the right tables according to the inherita
 red: https://www.baeldung.com/hibernate-inheritance
 Just tell me.
 
+
+Below are **clear explanations + diagrams** for **ALL 4 JPA inheritance strategies** you implemented:
+
+* **Single Table**
+* **Joined Table**
+* **Table Per Class**
+* **Mapped Super Class**
+
+I will explain:
+
+✔ How each strategy works
+✔ What tables will be created
+✔ Why those tables are created
+✔ Easy ASCII diagrams
+✔ Where your data will be saved
+
+---
+
+# 🟦 **1. SINGLE TABLE INHERITANCE**
+
+Annotation used:
+
+```java
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "dtype")
+```
+
+---
+
+## ✅ How It Works
+
+* Only **ONE TABLE** is created for **all parent + child** classes.
+* Hibernate adds **dtype** column to identify child type.
+* All fields of all subclasses stay in the same table.
+* Columns unused by some subclasses stay **NULL**.
+
+---
+
+## 📌 Tables Created
+
+### ✔ **Table: st_user**
+
+(Single table for User, Mentor, Student, TA)
+
+```
+st_user
+│ id (PK)
+│ name
+│ email
+│ dtype  ← ("Mentor", "Student", "TA")
+│ avg_rating      ← Mentor fields
+│ psp, attendance ← Student fields
+│ ave_rating      ← TA fields
+└──────────────────────────────────────
+```
+
+---
+
+## 📌 Diagram
+
+```
+            User (Parent)
+     /         |         \
+Mentor     Student        TA
+    \         |           /
+        SINGLE TABLE
+            st_user
+```
+
+---
+
+## 📌 Why This Table?
+
+Because SINGLE_TABLE means:
+
+➡ Combine **everything into ONE table**
+➡ Hibernate must add a discriminator (dtype)
+➡ Nulls will appear for irrelevant fields
+
+---
+
+# 🟩 **2. JOINED TABLE INHERITANCE**
+
+```java
+@Inheritance(strategy = InheritanceType.JOINED)
+```
+
+---
+
+## ✅ How It Works
+
+* Base class has **1 table**.
+* Each child has **its own table**.
+* Child table uses a **foreign key = SAME primary key as parent row**.
+* This is the most normalized strategy.
+
+---
+
+## 📌 Tables Created
+
+### ✔ **Table: st_user_joined**
+
+```
+id (PK)
+name
+email
+dtype   ← optional
+```
+
+### ✔ **Table: st_mentor_joined**
+
+```
+id (PK + FK to st_user_joined.id)
+avg_rating
+```
+
+### ✔ **Table: st_student_joined**
+
+```
+id (PK + FK)
+psp
+attendance
+```
+
+### ✔ **Table: st_ta_joined**
+
+```
+id (PK + FK)
+ave_rating
+```
+
+---
+
+## 📌 Diagram
+
+```
+                     User (Parent)
+                          │
+    ┌─────────────────────┼──────────────────────┐
+ st_user_joined (Parent Table)                   │
+       │ PK=1                                     │
+       │                                           │
+   ┌───┴────────┬───────────────┬───────────────┐
+   │             │               │               │
+Mentor        Student            TA            ...
+st_mentor     st_student         st_ta
+ id=1 FK       id=1 FK           id=1 FK
+```
+
+---
+
+## 📌 Why These Tables?
+
+Because JOINED strategy means:
+
+➡ Each child table extends the parent table
+➡ Child table stores only **extra fields**
+➡ Parent table stores **common fields**
+
+---
+
+# 🟨 **3. TABLE PER CLASS STRATEGY**
+
+```java
+@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
+```
+
+---
+
+## 🔥 VERY IMPORTANT
+
+TablePerClass **does NOT support IDENTITY** (auto-increment), so you fixed it using **UUID**, which is required.
+
+---
+
+## ✅ How It Works
+
+* Every child class gets **its own independent table**.
+* Parent table is optional or abstract.
+* No joins happen.
+* **Each child table contains parent fields also**.
+
+---
+
+## 📌 Tables Created
+
+### ✔ Table: **st_mentor_tpc**
+
+```
+id (UUID PK)
+name
+email
+avg_rating
+```
+
+### ✔ Table: **st_student_tpc**
+
+```
+id
+name
+email
+psp
+attendance
+```
+
+### ✔ Table: **st_ta_tpc**
+
+```
+id
+name
+email
+ave_rating
+```
+
+💡 **No parent table is created** (for concrete parent).
+
+---
+
+## 📌 Diagram
+
+```
+             UserTPC (Parent)
+          /         |         \
+     MentorTPC   StudentTPC   TATPC
+
+Each creates its OWN table:
+
+st_mentor_tpc
+st_student_tpc
+st_ta_tpc
+```
+
+Every table contains:
+
+✔ parent fields (name, email)
+✔ child-specific fields
+
+---
+
+## 📌 Why These Tables?
+
+Because TABLE_PER_CLASS means:
+
+➡ No shared parent table
+➡ Duplicate columns in each child table
+➡ Fast SELECT for one table
+➡ Slow polymorphic queries (UNION ALL)
+
+---
+
+# 🟫 **4. MAPPED SUPERCLASS**
+
+```java
+@MappedSuperclass
+```
+
+---
+
+## ❗ Very important:
+
+📌 **MappedSuperclass is NOT an entity**
+📌 **No table created for parent class**
+📌 Child tables contain the parent fields
+
+---
+
+## 📌 Tables Created
+
+### ✔ st_mentor_msc
+
+### ✔ st_student_msc
+
+### ✔ st_ta_msc
+
+Each contains:
+
+* id, name, email (from MappedSuperClass)
+* child-specific fields
+
+---
+
+## 📌 Diagram
+
+```
+UserMSC (NOT A TABLE)
+(name, email)
+
+      ↓          ↓            ↓
+st_mentor_msc  st_student_msc  st_ta_msc
+  +avg_rating     +psp            +ave_rating
+```
+
+---
+
+## 📌 Why These Tables?
+
+Because MappedSuperclass means:
+
+➡ Use parent fields but DO NOT CREATE a parent table
+➡ Add parent fields into every child table
+
+---
+
+# 🎉 **Final Summary Table**
+
+| Strategy             | Parent Table? | Child Table? | Null Columns? | Best For                                   |
+| -------------------- | ------------- | ------------ | ------------- | ------------------------------------------ |
+| **Single Table**     | ✅ Yes         | ❌ No         | ❗ Yes many    | Speed + simplicity                         |
+| **Joined**           | ✅ Yes         | ✅ Yes        | ❌ No          | Normalized data                            |
+| **Table Per Class**  | ❌ No          | ✅ Yes        | ❌ No          | Fast read by type                          |
+| **MappedSuperclass** | ❌ No          | ✅ Yes        | ❌ No          | Only reuse fields, not inheritance queries |
+
+---
+
+# If you want, I can also generate:
+
+### ✔ Clean ERD diagrams (graphics)
+
+### ✔ Full UML class diagram
+
+### ✔ SQL scripts for all tables
+
+### ✔ A PDF with full explanation
+
+Just say **"Generate full diagrams"** or **"Generate SQL"**.
+
+
 # ------------ fetch types in spring boot with full notes ---------
 Here is a **complete, clear, and exam-level explanation** of **Fetch Types in Spring Boot (JPA/Hibernate)** along with diagrams, examples, pros/cons, and best practices.
 
@@ -2948,4 +3275,5 @@ is dangerous because Hibernate loads everything at once → performance disaster
 
 # 🎉 **If you want, I can also generate a PNG DIAGRAM showing LAZY vs EAGER loading visually.**
 1) ![img_10.png](img_10.png)
-2) 
+2) https://www.baeldung.com/hibernate-lazy-eager-loading
+3) 

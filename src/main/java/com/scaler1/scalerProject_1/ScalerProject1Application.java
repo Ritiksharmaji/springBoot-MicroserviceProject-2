@@ -4,6 +4,10 @@ import com.scaler1.scalerProject_1.inheritanceDemo.SingleTable.*;
 import com.scaler1.scalerProject_1.inheritanceDemo.Joined.*;
 import com.scaler1.scalerProject_1.inheritanceDemo.TablePerClass.*;
 import com.scaler1.scalerProject_1.inheritanceDemo.MappedSuperClass.*;
+import com.scaler1.scalerProject_1.models.Category;
+import com.scaler1.scalerProject_1.models.Product;
+import com.scaler1.scalerProject_1.repositories.CategoryRepository;
+import com.scaler1.scalerProject_1.repositories.ProductRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -38,6 +42,10 @@ public class ScalerProject1Application implements CommandLineRunner {
     private final MentorRepositoryMSC mentorRepositoryMSC;
     private final StudentRepositoryMSC studentRepositoryMSC;
     private final TARepositoryMSC taRepositoryMSC;
+    private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
+
+    // ------------------- Cardinality mappings ----------------
 
     public ScalerProject1Application(
             MentorRepositorySingleTable mentorRepositorySingleTable,
@@ -54,8 +62,9 @@ public class ScalerProject1Application implements CommandLineRunner {
 
             MentorRepositoryMSC mentorRepositoryMSC,
             StudentRepositoryMSC studentRepositoryMSC,
-            TARepositoryMSC taRepositoryMSC
-    ) {
+            TARepositoryMSC taRepositoryMSC,
+            CategoryRepository categoryRepository,
+            ProductRepository productRepository) {
 
         // Single Table
         this.mentorRepositorySingleTable = mentorRepositorySingleTable;
@@ -76,6 +85,8 @@ public class ScalerProject1Application implements CommandLineRunner {
         this.mentorRepositoryMSC = mentorRepositoryMSC;
         this.studentRepositoryMSC = studentRepositoryMSC;
         this.taRepositoryMSC = taRepositoryMSC;
+        this.categoryRepository = categoryRepository;
+        this.productRepository = productRepository;
     }
 
     public static void main(String[] args) {
@@ -166,5 +177,20 @@ public class ScalerProject1Application implements CommandLineRunner {
         taRepositoryMSC.save(tam);
 
         System.out.println("✔ Sample data inserted for ALL inheritance strategies.");
+
+        // ===================== Cardinality mappings ========
+        Category category = new Category();
+        category.setName("cloths");
+       Category saveCategory = categoryRepository.save(category);
+
+        Product product = new Product();
+        product.setTitle("new Product");
+        product.setPrice(500);
+        product.setDescription("this is one of important book for developer");
+        product.setImage("/cloudnary/ritik/product/34");
+        product.setCategory(saveCategory);
+        productRepository.save(product);
+
+
     }
 }
