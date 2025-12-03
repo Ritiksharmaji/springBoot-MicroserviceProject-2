@@ -4,4 +4,7 @@ import com.scaler1.scalerProject_1.models.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
+    Product findByTitleEquals(String title);
+    Product findByTitleEqualsAndPrice_Price(String title, double price);
+
 }

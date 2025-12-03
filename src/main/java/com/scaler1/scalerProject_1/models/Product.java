@@ -1,9 +1,9 @@
 package com.scaler1.scalerProject_1.models;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.List;
 
 @Data
 @Entity
@@ -13,8 +13,11 @@ public class Product extends BaseModel{
     private String title;
     private String description;
     private String image;
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "category")
     private Category category;
-    private double price;
+
+    @OneToOne(cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    private Price price;
 
 }

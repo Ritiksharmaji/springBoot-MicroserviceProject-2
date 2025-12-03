@@ -20,6 +20,10 @@ public class Category extends BaseModel {
     private List<Product> products;
     // this is the same relation being mappend by category class to product class
 
+    @Override
+    public String toString() {
+        return "name=" + name ;
+    }
 
 
 }
